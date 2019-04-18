@@ -1,2 +1,4 @@
 # MachineLearning_NN
-Neural Network
+Neural Network:
+CNN
+Rresnet50
