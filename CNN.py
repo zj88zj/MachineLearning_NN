@@ -246,3 +246,55 @@ for i in range(EPOCH):
             best_acc = epoch_acc
             best_model_wts = copy.deepcopy(model.state_dict())
             torch.save(best_model_wts, "resnet50.pth")
+
+##Reconstruction of model      
+model1 = torchvision.models.resnet50()
+model1.fc = torch.nn.Sequential(
+    torch.nn.Linear(
+        in_features=2048,
+        out_features=1
+    ),
+    torch.nn.Sigmoid()
+)
+model1.load_state_dict(torch.load("resnet50.pth"))
+
+##Prediction
+test_data = FurnitureDataset(
+    img_dir="../testImage/",
+    transform=transform_pipe
+)
+test_loader1 = DataLoader(
+    test_data,
+    batch_size=BATCH_SIZE,
+#     shuffle=True,
+#     num_workers=8
+)
+
+model1.eval()
+if USE_GPU:
+    model1 = model1.cuda()
+
+ids_all = []
+predictions = []
+
+for j, batch in enumerate(test_loader1):
+    X = batch["image"]
+    ids = batch["id"]
+    if USE_GPU:
+        X = X.cuda()
+    
+    for _id in ids:
+        ids_all.append(_id)
+
+    with torch.set_grad_enabled(False):
+        y_pred = model1(X)
+        predictions.append((y_pred >= 0.5).float().cpu().numpy())
+        
+print("Done making predictions!")
+
+##prediction data output
+submissions = pd.DataFrame({
+    "id": ids_all,
+    "label": np.concatenate(predictions).reshape(-1,).astype("int")
+}).set_index("id")
+submissions.to_csv("./submissions.csv")
