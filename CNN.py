@@ -23,7 +23,7 @@ from sklearn.metrics import accuracy_score
 ##Parameters
 EPOCH = 5
 BATCH_SIZE = 10
-LR = 0.001   
+LR = 0.01   
 USE_GPU = False
 
 ##Label data load
@@ -83,7 +83,8 @@ transform_pipe = transforms.Compose([
     transforms.Resize(
         size=(224, 224)
     ),   # Resize image to 224 x 224 as required by most vision models
-    transforms.ToTensor() # Convert PIL image to tensor with image values in [0, 1]
+    transforms.ToTensor(), # Convert PIL image to tensor with image values in [0, 1]
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
 train_data = FurnitureDataset(
