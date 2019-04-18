@@ -83,11 +83,7 @@ transform_pipe = transforms.Compose([
     transforms.Resize(
         size=(224, 224)
     ),   # Resize image to 224 x 224 as required by most vision models
-    transforms.ToTensor(), # Convert PIL image to tensor with image values in [0, 1]
-    transforms.Normalize(
-        mean=[0.485, 0.456, 0.406],
-        std=[0.229, 0.224, 0.225]
-    )
+    transforms.ToTensor() # Convert PIL image to tensor with image values in [0, 1]
 ])
 
 train_data = FurnitureDataset(
@@ -218,14 +214,14 @@ for i in range(EPOCH):
 
             with torch.set_grad_enabled(phase == 'train'):
                 y = model(X)
-                loss = criterion(y, labels.view(-1, 1).float())
+                loss = criterion(y, labels)
 
                 if phase == "train":
                     loss.backward()
                     optimizer.step()
                 loss_sum += loss.item() * X.shape[0]
                 samples += X.shape[0]
-                num_corrects = torch.sum((y >= 0.5).float() == labels.view(-1, 1).float())
+                num_corrects = torch.sum(y == labels)
                 correct_sum += num_corrects
 
                 ## Print batch statistics every 50 batches
@@ -288,13 +284,13 @@ for j, batch in enumerate(test_loader1):
 
     with torch.set_grad_enabled(False):
         y_pred = model1(X)
-        predictions.append((y_pred >= 0.5).float().cpu().numpy())
+        predictions.append(y)
         
 print("Done making predictions!")
 
 ##prediction data output
 submissions = pd.DataFrame({
     "id": ids_all,
-    "label": np.concatenate(predictions).reshape(-1,).astype("int")
+    "label": np.concatenate(predictions)
 }).set_index("id")
 submissions.to_csv("./submissions.csv")
