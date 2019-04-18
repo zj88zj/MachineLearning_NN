@@ -171,7 +171,7 @@ model = torchvision.models.resnet50()
 model.fc = nn.Sequential(
     nn.Linear(
         in_features=2048,
-        out_features=1
+        out_features=5
     ),
     nn.Sigmoid()
 )
