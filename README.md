@@ -1,4 +1,4 @@
 # MachineLearning_NN
-Neural Network:
+Neural Network - image classification model for data cleaning 
 CNN
 Rresnet50
