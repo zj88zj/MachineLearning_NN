@@ -27,7 +27,7 @@ LR = 0.01
 USE_GPU = False
 
 ##Label data load
-labels_df = pd.read_csv('../label.csv', index_col=0)
+labels_df = pd.read_csv('../label.csv')
 # labels_df.head()
 # labels_df["label"].value_counts().plot(kind="pie")
 # plt.show()
@@ -55,9 +55,9 @@ class FurnitureDataset(Dataset):
         except AttributeError:
             img_path = self.images[idx]
 
-        #print("img_path:", img_path)
-        img = imread(img_path)
-        
+        #print("img_path:", img_path)      
+        img = imread(img_path)     
+
         if self.transform:
             img = self.transform(img) 
 
@@ -197,7 +197,7 @@ for i in range(EPOCH):
         if phase == "train":
            model.train()
         else:
-           model.test()
+           model.eval()
 
         samples = 0
         loss_sum = 0
@@ -218,13 +218,11 @@ for i in range(EPOCH):
                 if phase == "train":
                     loss.backward()
                     optimizer.step()
-                loss_sum += loss.item() * X.shape[0]
+                loss_sum += loss.item() #* X.shape[0]
                 samples += X.shape[0]
-                num_corrects = torch.sum(y == labels)
-                correct_sum += num_corrects
-
+                correct_sum += torch.sum(y.float() == labels.view(-1, 1).float())
                 ## Print batch statistics every 50 batches
-                if j % 50 == 49 and phase == "train":
+                if j % 5 == 4 and phase == "train":
                     print("{}:{} - loss: {}, acc: {}".format(
                         i + 1, 
                         j + 1, 
