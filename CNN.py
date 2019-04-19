@@ -22,7 +22,7 @@ from sklearn.metrics import accuracy_score
 
 ##Parameters
 EPOCH = 5
-BATCH_SIZE = 10
+BATCH_SIZE = 5
 LR = 0.01   
 USE_GPU = False
 
@@ -107,8 +107,7 @@ train_loader = DataLoader(
         train_indices
     )
 #     num_workers = 5,
-#     shuffle=True,
-#     num_workers=8
+#     shuffle=True
 )
 
 test_loader = DataLoader(
@@ -118,8 +117,7 @@ test_loader = DataLoader(
         test_indices
     )
 #     num_workers = 5,
-#     shuffle=True,
-#     num_workers=8
+#     shuffle=True
 )
 
 dataloaders = {
@@ -151,7 +149,7 @@ dataloaders = {
 #             nn.ReLU(),                      
 #             nn.MaxPool2d(2),                # output shape (32, 28, 28)
 #         )
-#         self.out = nn.Linear(32 * 28 * 28, 10)   # fully connected layer, output 10 classes
+#         self.out = nn.Linear(32 * 28 * 28, 5)   # fully connected layer, output 5 classes
 #         #nn.Sigmoid()?
         
 #    def forward(self, x):
@@ -201,7 +199,7 @@ for i in range(EPOCH):
         else:
            model.test()
 
-        sample = 0
+        samples = 0
         loss_sum = 0
         correct_sum = 0
         for j, batch in enumerate(dataloaders[phase]):
@@ -249,7 +247,7 @@ model1 = torchvision.models.resnet50()
 model1.fc = torch.nn.Sequential(
     torch.nn.Linear(
         in_features=2048,
-        out_features=1
+        out_features=5
     ),
     torch.nn.Sigmoid()
 )
