@@ -17,6 +17,7 @@ import pandas as pd
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from skimage.io import imread
+from skimage.color import gray2rgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
@@ -56,7 +57,8 @@ class FurnitureDataset(Dataset):
             img_path = self.images[idx]
 
         #print("img_path:", img_path)      
-        img = imread(img_path)     
+        img = imread(img_path) 
+        img = gray2rgb(img)
 
         if self.transform:
             img = self.transform(img) 
@@ -281,13 +283,13 @@ for j, batch in enumerate(test_loader1):
 
     with torch.set_grad_enabled(False):
         y_pred = model1(X)
-        predictions.append(y)
-        
+        predictions.append(y_pred)
+
 print("Done making predictions!")
 
 ##prediction data output
 submissions = pd.DataFrame({
     "id": ids_all,
-    "label": np.concatenate(predictions)
+    "label": np.concatenate(predictions).reshape(-1,).astype("int")
 }).set_index("id")
 submissions.to_csv("./submissions.csv")
