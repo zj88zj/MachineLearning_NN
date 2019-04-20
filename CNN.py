@@ -220,9 +220,11 @@ for i in range(EPOCH):
                 if phase == "train":
                     loss.backward()
                     optimizer.step()
-                loss_sum += loss.item() #* X.shape[0]
+                loss_sum += loss.item()*X.shape[0]
                 samples += X.shape[0]
-                correct_sum += torch.sum(y.float() == labels.view(-1, 1).float())
+                _, corrects = torch.max(y.data, 1)
+                correct_sum += (corrects == labels).sum().item()
+                
                 ## Print batch statistics every 50 batches
                 if j % 5 == 4 and phase == "train":
                     print("{}:{} - loss: {}, acc: {}".format(
@@ -284,6 +286,7 @@ for j, batch in enumerate(test_loader1):
     with torch.set_grad_enabled(False):
         y_pred = model1(X)
         predictions.append(y_pred)
+        
 
 print("Done making predictions!")
 
