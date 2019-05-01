@@ -22,9 +22,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 ##Parameters
-EPOCH = 5
-BATCH_SIZE = 5
-LR = 0.01   
+EPOCH = 10
+BATCH_SIZE = 20
+LR = 0.01
+#LAMBDA = 20 regularization parameter
 USE_GPU = False
 
 ##Label data load
@@ -86,7 +87,7 @@ transform_pipe = transforms.Compose([
         size=(224, 224)
     ),   # Resize image to 224 x 224 as required by most vision models
     transforms.ToTensor(), # Convert PIL image to tensor with image values in [0, 1]
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
 ])
 
 train_data = FurnitureDataset(
@@ -95,9 +96,9 @@ train_data = FurnitureDataset(
     transform=transform_pipe
 )
 
-# plot one example
-# print(train_data.train_data.size())                 # (60000, 28, 28)
-# print(train_data.labels_df.size())               # (60000)
+## plot one example
+# print(train_data.train_data.size())                 
+# print(train_data.labels_df.size())              
 # plt.imshow(train_data.train_data[0].numpy(), cmap='gray')
 # plt.title('%i' % train_data.labels_df[0])
 # plt.show()
@@ -108,8 +109,7 @@ train_loader = DataLoader(
     sampler=torch.utils.data.SubsetRandomSampler(
         train_indices
     )
-#     num_workers = 5,
-#     shuffle=True
+#     num_workers = 5
 )
 
 test_loader = DataLoader(
@@ -118,8 +118,7 @@ test_loader = DataLoader(
     sampler=torch.utils.data.SubsetRandomSampler(
         test_indices
     )
-#     num_workers = 5,
-#     shuffle=True
+#     num_workers = 5
 )
 
 dataloaders = {
@@ -166,25 +165,25 @@ dataloaders = {
 # print(cnn)
 
 
-##Rresnet50()
-model = torchvision.models.resnet50()
+##Rresnet50
+model = torchvision.models.resnet50(pretrained=True)
 model.fc = nn.Sequential(
     nn.Linear(
         in_features=2048,
         out_features=5
     ),
-    nn.Sigmoid()
+    nn.Softmax(dim=1)
 )
-# model
+# print(model)
 # out = model(train_data[0]["image"].view(1, 3, 224, 224))
-# out.shape
+# print(out.shape)
 
 if USE_GPU:
     model = model.cuda()  # Should be called before instantiating optimizer
 
 ##Optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=LR) 
-#optimizer = torch.optim.SGD(model.parameters(), lr =LR)
+#optimizer = torch.optim.Adam(model.parameters(), lr=LR) 
+optimizer = torch.optim.SGD(model.parameters(), lr =LR, momentum= 0.9)
 
 #criterion = nn.MSELoss()
 criterion = nn.CrossEntropyLoss()     
@@ -214,6 +213,8 @@ for i in range(EPOCH):
             optimizer.zero_grad()
 
             with torch.set_grad_enabled(phase == 'train'):
+                #for name, param in model.named_parameters():
+	            #    print(name, '      ', param.size(), param)
                 y = model(X)
                 loss = criterion(y, labels)
 
@@ -225,8 +226,8 @@ for i in range(EPOCH):
                 _, corrects = torch.max(y.data, 1)
                 correct_sum += (corrects == labels).sum().item()
                 
-                ## Print batch statistics every 50 batches
-                if j % 5 == 4 and phase == "train":
+                ## Print batch statistics every # batches
+                if j % 1 == 0 and phase == "train":
                     print("{}:{} - loss: {}, acc: {}".format(
                         i + 1, 
                         j + 1, 
@@ -245,13 +246,13 @@ for i in range(EPOCH):
             torch.save(best_model_wts, "resnet50.pth")
 
 ##Reconstruction of model      
-model1 = torchvision.models.resnet50()
+model1 = torchvision.models.resnet50(pretrained=True)
 model1.fc = torch.nn.Sequential(
     torch.nn.Linear(
         in_features=2048,
         out_features=5
     ),
-    torch.nn.Sigmoid()
+    nn.Softmax(dim=1)
 )
 model1.load_state_dict(torch.load("resnet50.pth"))
 
@@ -285,7 +286,8 @@ for j, batch in enumerate(test_loader1):
 
     with torch.set_grad_enabled(False):
         y_pred = model1(X)
-        predictions.append(y_pred)
+        _, indicates = torch.max(y_pred.data, 1)
+        predictions.append(indicates)
         
 
 print("Done making predictions!")
