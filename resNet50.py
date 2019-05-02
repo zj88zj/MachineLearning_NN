@@ -126,46 +126,18 @@ dataloaders = {
     "test": test_loader
 }
 
-#CNN
-class CNN(nn.Module):
-   def __init__(self):
-        super(CNN, self).__init__()
-        self.conv1 = nn.Sequential(         # input shape (3, 224, 224)
-            nn.Conv2d(
-                in_channels=3,              # input height
-                out_channels=8,             # n_filters
-                kernel_size=5,              # filter size
-                stride=1,                   # filter movement/step
-                padding=2,                  # if want same width and length of this image after Conv2d, padding=(kernel_size-1)/2 if stride=1
-            ),                              # output shape (8, 224, 224)
-            nn.ReLU(),                      # activation
-            nn.MaxPool2d(kernel_size=2),    # choose max value in 2x2 area, output shape (8, 112, 112)
-        )
-        self.conv2 = nn.Sequential(         
-            nn.Conv2d(8, 16, 5, 1, 2),      
-            nn.ReLU(),                      
-            nn.MaxPool2d(2),                # output shape (16, 56, 56)
-        )
-        self.conv3 = nn.Sequential(
-            nn.Conv2d(16, 32, 5, 1, 2),    
-            nn.ReLU(),                      
-            nn.MaxPool2d(2),                # output shape (32, 28, 28)
-        )
-        self.out = nn.Linear(32 * 28 * 28, 5)   # fully connected layer, output 5 classes
-        #nn.Sigmoid()?
-        
-   def forward(self, x):
-        x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = x.view(x.size(0), -1)           # flatten
-        output = self.out(x)
-        return output, x    # return x for visualization
-
-cnn = CNN()
-print(cnn)
-out = cnn(train_data[0]["image"].view(1, 3, 224, 224))
-print(out.shape)
+##Rresnet50
+model = torchvision.models.resnet50(pretrained=True)
+model.fc = nn.Sequential(
+    nn.Linear(
+        in_features=2048,
+        out_features=5
+    ),
+    nn.Softmax(dim=1)
+)
+# print(model)
+# out = model(train_data[0]["image"].view(1, 3, 224, 224))
+# print(out.shape)
 
 if USE_GPU:
     model = model.cuda()  # Should be called before instantiating optimizer
@@ -286,4 +258,4 @@ submissions = pd.DataFrame({
     "id": ids_all,
     "label": np.concatenate(predictions).reshape(-1,).astype("int")
 }).set_index("id")
-submissions.to_csv("./cnnpredictions.csv")
+submissions.to_csv("./submissions.csv")
