@@ -8,14 +8,14 @@
             "name": "Python: Current File (Integrated Terminal)",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/CNN.py",
+            "program": "${workspaceFolder}/CNNtest.py",
             "console": "integratedTerminal"
         },
         {
             "name": "Python: Current File (External Terminal)",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/CNN.py",
+            "program": "${workspaceFolder}/CNNtest.py",
             "console": "externalTerminal"
         }
     ]

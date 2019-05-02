@@ -22,19 +22,16 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 ##Parameters
-EPOCH = 10
-BATCH_SIZE = 20
+EPOCH = 5
+BATCH_SIZE = 1
 LR = 0.01
-#LAMBDA = 20 regularization parameter
 USE_GPU = False
-
+LMBDA = 0.001
 ##Label data load
 labels_df = pd.read_csv('../label.csv')
-# labels_df.head()
-# labels_df["label"].value_counts().plot(kind="pie")
-# plt.show()
+
 train_indices, test_indices = train_test_split(labels_df.index, test_size=0.25) #0.75 for training 0.25 for test
-#train_indices.shape, test_indices.shape
+
 
 ##Load images, labels and do transform
 class FurnitureDataset(Dataset):
@@ -56,8 +53,7 @@ class FurnitureDataset(Dataset):
             )
         except AttributeError:
             img_path = self.images[idx]
-
-        #print("img_path:", img_path)      
+      
         img = imread(img_path) 
         img = gray2rgb(img)
 
@@ -85,7 +81,7 @@ transform_pipe = transforms.Compose([
     transforms.ToPILImage(),  # Convert np array to PILImage
     transforms.Resize(
         size=(224, 224)
-    ),   # Resize image to 224 x 224 as required by most vision models
+    ), 
     transforms.ToTensor(), # Convert PIL image to tensor with image values in [0, 1]
     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
 ])
@@ -96,20 +92,12 @@ train_data = FurnitureDataset(
     transform=transform_pipe
 )
 
-## plot one example
-# print(train_data.train_data.size())                 
-# print(train_data.labels_df.size())              
-# plt.imshow(train_data.train_data[0].numpy(), cmap='gray')
-# plt.title('%i' % train_data.labels_df[0])
-# plt.show()
-
 train_loader = DataLoader(
     train_data,
     batch_size=BATCH_SIZE,
     sampler=torch.utils.data.SubsetRandomSampler(
         train_indices
     )
-#     num_workers = 5
 )
 
 test_loader = DataLoader(
@@ -118,7 +106,6 @@ test_loader = DataLoader(
     sampler=torch.utils.data.SubsetRandomSampler(
         test_indices
     )
-#     num_workers = 5
 )
 
 dataloaders = {
@@ -151,8 +138,10 @@ class CNN(nn.Module):
             nn.ReLU(),                      
             nn.MaxPool2d(2),                # output shape (32, 28, 28)
         )
-        self.out = nn.Linear(32 * 28 * 28, 5)   # fully connected layer, output 5 classes
-        #nn.Sigmoid()?
+        self.out = nn.Sequential(
+            nn.Linear(32 * 28 * 28, 5),   # fully connected layer, output 5 classes
+            nn.Softmax(dim=1)
+        )
         
    def forward(self, x):
         x = self.conv1(x)
@@ -160,23 +149,18 @@ class CNN(nn.Module):
         x = self.conv3(x)
         x = x.view(x.size(0), -1)           # flatten
         output = self.out(x)
-        return output, x    # return x for visualization
+        return output    # for visualization can also return x 
 
-cnn = CNN()
-print(cnn)
-out = cnn(train_data[0]["image"].view(1, 3, 224, 224))
-print(out.shape)
+model = CNN()
+#print(model)
 
 if USE_GPU:
     model = model.cuda()  # Should be called before instantiating optimizer
 
-##Optimizer
-#optimizer = torch.optim.Adam(model.parameters(), lr=LR) 
-optimizer = torch.optim.SGD(model.parameters(), lr =LR, momentum= 0.9)
+#optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay= LMBDA) 
+optimizer = torch.optim.SGD(model.parameters(), lr =LR, momentum= 0.9, weight_decay= LMBDA)
 
-#criterion = nn.MSELoss()
-criterion = nn.CrossEntropyLoss()     
-#criterion = nn.BCELoss()             
+criterion = nn.CrossEntropyLoss()                 
 
 best_model_wts = copy.deepcopy(model.state_dict())
 best_acc = 0.0
@@ -202,8 +186,6 @@ for i in range(EPOCH):
             optimizer.zero_grad()
 
             with torch.set_grad_enabled(phase == 'train'):
-                #for name, param in model.named_parameters():
-	            #    print(name, '      ', param.size(), param)
                 y = model(X)
                 loss = criterion(y, labels)
 
@@ -223,26 +205,18 @@ for i in range(EPOCH):
                         float(loss_sum) / float(samples), 
                         float(correct_sum) / float(samples)
                     ))
-        # Print epoch statistics
         epoch_acc = float(correct_sum) / float(samples)
         epoch_loss = float(loss_sum) / float(samples)
         print("epoch: {} - {} loss: {}, {} acc: {}".format(i + 1, phase, epoch_loss, phase, epoch_acc))
         
-        # Deep copy the model
+        ## Deep copy the model
         if phase == "test" and epoch_acc > best_acc:
             best_acc = epoch_acc
             best_model_wts = copy.deepcopy(model.state_dict())
             torch.save(best_model_wts, "resnet50.pth")
 
 ##Reconstruction of model      
-model1 = torchvision.models.resnet50(pretrained=True)
-model1.fc = torch.nn.Sequential(
-    torch.nn.Linear(
-        in_features=2048,
-        out_features=5
-    ),
-    nn.Softmax(dim=1)
-)
+model1 =  CNN()
 model1.load_state_dict(torch.load("resnet50.pth"))
 
 ##Prediction
@@ -253,8 +227,6 @@ test_data = FurnitureDataset(
 test_loader1 = DataLoader(
     test_data,
     batch_size=BATCH_SIZE,
-#     shuffle=True,
-#     num_workers=8
 )
 
 model1.eval()
